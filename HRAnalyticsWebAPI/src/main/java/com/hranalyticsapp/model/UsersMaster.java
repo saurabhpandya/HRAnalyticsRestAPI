@@ -5,9 +5,10 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity(name = "users_master")
-public class UsersMster {
+public class UsersMaster {
 	@Id
 	private int id;
+	@Column(name = "prefix")
 	private int prefix;
 	@Column(name = "user_type")
 	private int userType;

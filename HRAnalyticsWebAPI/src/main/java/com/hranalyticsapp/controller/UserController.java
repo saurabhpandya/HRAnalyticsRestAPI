@@ -7,19 +7,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.hranalyticsapp.model.UsersMster;
+import com.hranalyticsapp.model.UsersMaster;
 import com.hranalyticsapp.repository.UserRepository;
 
 @RestController
-public class HomeController {
+public class UserController {
 
 	@Autowired
 	UserRepository userRepo;
 
 	@RequestMapping("/")
 	@ResponseBody
-	public List<UsersMster> home() {
-		System.out.println("Home Controller");
+	public List<UsersMaster> home() {
 		return userRepo.findAll();
 	}
 
