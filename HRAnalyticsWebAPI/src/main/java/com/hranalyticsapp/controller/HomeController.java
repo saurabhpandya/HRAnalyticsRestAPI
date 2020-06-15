@@ -1,4 +1,4 @@
-package com.hranalyticsapp;
+package com.hranalyticsapp.controller;
 
 import java.util.List;
 
@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hranalyticsapp.model.UsersMster;
+import com.hranalyticsapp.repository.UserRepository;
 
 @RestController
 public class HomeController {

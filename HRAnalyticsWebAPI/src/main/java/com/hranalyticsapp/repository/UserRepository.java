@@ -1,4 +1,4 @@
-package com.hranalyticsapp;
+package com.hranalyticsapp.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
