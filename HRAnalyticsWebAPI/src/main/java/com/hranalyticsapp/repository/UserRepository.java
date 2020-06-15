@@ -6,4 +6,6 @@ import com.hranalyticsapp.model.UsersMaster;
 
 public interface UserRepository extends JpaRepository<UsersMaster, Integer> {
 
+	UsersMaster findByEmail(String email);
+
 }
