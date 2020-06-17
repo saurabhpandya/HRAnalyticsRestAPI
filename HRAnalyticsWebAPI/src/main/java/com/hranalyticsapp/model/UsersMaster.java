@@ -4,8 +4,10 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
+import com.hranalyticsapp.model.base.Auditable;
+
 @Entity(name = "users_master")
-public class UsersMaster {
+public class UsersMaster extends Auditable<String> {
 	@Id
 	private int id;
 	@Column(name = "prefix")
@@ -31,19 +33,11 @@ public class UsersMaster {
 	@Column(name = "password")
 	private String password;
 	@Column(name = "deleted")
-	private Boolean deleted;
+	private boolean deleted;
 	@Column(name = "active")
-	private Boolean active;
+	private boolean active;
 	@Column(name = "blocked")
-	private Boolean blocked;
-	@Column(name = "create_by")
-	private String createdBy;
-	@Column(name = "created_date")
-	private String createdDate;
-	@Column(name = "modified_by")
-	private String modifiedBy;
-	@Column(name = "modified_date")
-	private String modifiedDate;
+	private boolean blocked;
 
 	public int getId() {
 		return id;
@@ -165,38 +159,6 @@ public class UsersMaster {
 		this.blocked = blocked;
 	}
 
-	public String getCreatedBy() {
-		return createdBy;
-	}
-
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
-	}
-
-	public String getCreatedDate() {
-		return createdDate;
-	}
-
-	public void setCreatedDate(String createdDate) {
-		this.createdDate = createdDate;
-	}
-
-	public String getModifiedBy() {
-		return modifiedBy;
-	}
-
-	public void setModifiedBy(String modifiedBy) {
-		this.modifiedBy = modifiedBy;
-	}
-
-	public String getModifiedDate() {
-		return modifiedDate;
-	}
-
-	public void setModifiedDate(String modifiedDate) {
-		this.modifiedDate = modifiedDate;
-	}
-
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -230,14 +192,6 @@ public class UsersMaster {
 		builder.append(active);
 		builder.append(", blocked=");
 		builder.append(blocked);
-		builder.append(", createdBy=");
-		builder.append(createdBy);
-		builder.append(", createdDate=");
-		builder.append(createdDate);
-		builder.append(", modifiedBy=");
-		builder.append(modifiedBy);
-		builder.append(", modifiedDate=");
-		builder.append(modifiedDate);
 		builder.append("]");
 		return builder.toString();
 	}
