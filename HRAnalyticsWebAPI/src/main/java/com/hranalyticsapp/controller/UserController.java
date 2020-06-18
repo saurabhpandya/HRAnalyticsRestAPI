@@ -1,10 +1,13 @@
 package com.hranalyticsapp.controller;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.util.Pair;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,8 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hranalyticsapp.constants.Constants;
 import com.hranalyticsapp.model.UsersMaster;
 import com.hranalyticsapp.model.base.BaseResponse;
-import com.hranalyticsapp.model.base.ErrorResponse;
+import com.hranalyticsapp.model.base.CommonResponse;
 import com.hranalyticsapp.repository.UserRepository;
+import com.hranalyticsapp.utility.Utility;
 import com.hranalyticsapp.validator.UsersValidator;
 
 @RestController
@@ -33,14 +37,150 @@ public class UserController {
 		if (usersMaster != null & !usersMaster.isEmpty()) {
 			baseResponse.setData(usersMaster);
 		} else {
-			ErrorResponse errorResponse = new ErrorResponse();
-			errorResponse.setErrorMessage(Constants.msg_no_user_found);
-			baseResponse.setError(errorResponse);
+			baseResponse.setError(Utility.getErrorResponse(0, Constants.msg_no_user_found));
 		}
 		return baseResponse;
 	}
 
-	@PostMapping("validateUser")
+	@GetMapping("users/{id}")
+	@ResponseBody
+	public BaseResponse<UsersMaster> getUserById(@PathVariable(name = "id") int id) {
+		BaseResponse<UsersMaster> baseResponse = new BaseResponse<UsersMaster>();
+		try {
+			if (id > 0) {
+				Optional<UsersMaster> userMasterOptional = userRepo.findById(id);
+				if (userMasterOptional.isPresent()) {
+					UsersMaster userMaster = new UsersMaster();
+					userMaster = userMasterOptional.get();
+					if (userMaster != null) {
+						baseResponse.setData(userMaster);
+					} else {
+						baseResponse.setError(Utility.getErrorResponse(0, Constants.msg_no_user_found));
+					}
+				} else {
+					baseResponse.setError(Utility.getErrorResponse(0, Constants.msg_no_user_found));
+				}
+			} else {
+				baseResponse.setError(Utility.getErrorResponse(0, Constants.msg_enter_valid_data));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			baseResponse.setError(Utility.getErrorResponse(0, e.getLocalizedMessage()));
+		}
+
+		return baseResponse;
+	}
+
+	@DeleteMapping("users/{id}")
+	@ResponseBody
+	public BaseResponse<CommonResponse> deleteUserById(@PathVariable(name = "id") int id) {
+		BaseResponse<CommonResponse> baseResponse = new BaseResponse<CommonResponse>();
+		try {
+			if (id > 0) {
+				Optional<UsersMaster> userMasterOptional = userRepo.findById(id);
+				if (userMasterOptional.isPresent()) {
+					UsersMaster markDeletedUserMaster = new UsersMaster();
+					markDeletedUserMaster = userMasterOptional.get();
+					markDeletedUserMaster.setActive(false);
+					markDeletedUserMaster.setDeleted(true);
+					markDeletedUserMaster.setBlocked(false);
+					userRepo.save(markDeletedUserMaster);
+					CommonResponse deletedUserResponse = new CommonResponse();
+					deletedUserResponse.setMessage(Constants.msg_user_deleted);
+					baseResponse.setData(deletedUserResponse);
+				} else {
+					baseResponse.setError(Utility.getErrorResponse(0, Constants.msg_no_user_found));
+				}
+			} else {
+				baseResponse.setError(Utility.getErrorResponse(0, Constants.msg_enter_valid_data));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			baseResponse.setError(Utility.getErrorResponse(0, e.getLocalizedMessage()));
+		}
+		return baseResponse;
+	}
+
+	@PostMapping("users/deActivate")
+	@ResponseBody
+	public BaseResponse<CommonResponse> deActivateUser(@RequestBody UsersMaster activateUserRequest) {
+		BaseResponse<CommonResponse> activatedResponse = new BaseResponse<CommonResponse>();
+		UsersMaster usersMaster = new UsersMaster();
+		if (activateUserRequest != null) {
+			UsersValidator usersValidator = new UsersValidator();
+			Pair<Boolean, String> emailUserValidatorPair = usersValidator.isEmailValid(activateUserRequest.getEmail());
+			if (emailUserValidatorPair.getFirst()) {
+				Pair<Boolean, String> passwordUserValidatorPair = usersValidator
+						.isPasswordValid(activateUserRequest.getPassword());
+				if (passwordUserValidatorPair.getFirst()) {
+					usersMaster = userRepo.findByEmail(activateUserRequest.getEmail());
+					if (usersMaster != null) {
+
+						Pair<Boolean, String> validatePasswordPair = usersValidator
+								.validatePassword(activateUserRequest.getPassword(), usersMaster.getPassword());
+						if (validatePasswordPair.getFirst()) {
+							usersMaster.setActive(false);
+							usersMaster.setBlocked(false);
+							usersMaster.setDeleted(true);
+							userRepo.save(usersMaster);
+							CommonResponse activatedCommonResponse = new CommonResponse();
+							activatedCommonResponse.setMessage(Constants.msg_user_deactivated);
+							activatedResponse.setData(activatedCommonResponse);
+						} else {
+							activatedResponse.setError(Utility.getErrorResponse(0, validatePasswordPair.getSecond()));
+						}
+					} else {
+						activatedResponse.setError(Utility.getErrorResponse(0, Constants.msg_no_user_found));
+					}
+				} else {
+					activatedResponse.setError(Utility.getErrorResponse(0, passwordUserValidatorPair.getSecond()));
+				}
+			} else {
+				activatedResponse.setError(Utility.getErrorResponse(0, emailUserValidatorPair.getSecond()));
+			}
+		} else {
+			activatedResponse.setError(Utility.getErrorResponse(0, Constants.msg_enter_valid_data));
+		}
+		return activatedResponse;
+	}
+
+	@PostMapping("users/activate")
+	@ResponseBody
+	public BaseResponse<CommonResponse> activateUser(@RequestBody UsersMaster activateUserRequest) {
+		BaseResponse<CommonResponse> activatedResponse = new BaseResponse<CommonResponse>();
+		UsersMaster usersMaster = new UsersMaster();
+		if (activateUserRequest != null) {
+			UsersValidator usersValidator = new UsersValidator();
+			Pair<Boolean, String> emailUserValidatorPair = usersValidator.isEmailValid(activateUserRequest.getEmail());
+			if (emailUserValidatorPair.getFirst()) {
+				Pair<Boolean, String> passwordUserValidatorPair = usersValidator
+						.isPasswordValid(activateUserRequest.getPassword());
+				if (passwordUserValidatorPair.getFirst()) {
+					usersMaster = userRepo.findByEmail(activateUserRequest.getEmail());
+					if (usersMaster != null) {
+						usersMaster.setActive(true);
+						usersMaster.setBlocked(false);
+						usersMaster.setDeleted(false);
+						userRepo.save(usersMaster);
+						CommonResponse activatedCommonResponse = new CommonResponse();
+						activatedCommonResponse.setMessage(Constants.msg_user_activated);
+						activatedResponse.setData(activatedCommonResponse);
+					} else {
+						activatedResponse.setError(Utility.getErrorResponse(0, Constants.msg_no_user_found));
+					}
+				} else {
+					activatedResponse.setError(Utility.getErrorResponse(0, passwordUserValidatorPair.getSecond()));
+				}
+			} else {
+				activatedResponse.setError(Utility.getErrorResponse(0, emailUserValidatorPair.getSecond()));
+			}
+		} else {
+			activatedResponse.setError(Utility.getErrorResponse(0, Constants.msg_enter_valid_data));
+		}
+		return activatedResponse;
+	}
+
+	@PostMapping("users/validate")
 	@ResponseBody
 	public BaseResponse<UsersMaster> validateUser(@RequestBody UsersMaster validateUserRequest) {
 		BaseResponse<UsersMaster> validateUserResponse = new BaseResponse<UsersMaster>();
@@ -52,37 +192,28 @@ public class UserController {
 				Pair<Boolean, String> passwordUserValidatorPair = usersValidator
 						.isPasswordValid(validateUserRequest.getPassword());
 				if (passwordUserValidatorPair.getFirst()) {
-					usersMaster = userRepo.findByEmail(validateUserRequest.getEmail());
+					usersMaster = userRepo.validateEmail(validateUserRequest.getEmail());
 					if (usersMaster != null) {
 						Pair<Boolean, String> validatePasswordPair = usersValidator
 								.validatePassword(validateUserRequest.getPassword(), usersMaster.getPassword());
 						if (validatePasswordPair.getFirst()) {
 							validateUserResponse.setData(usersMaster);
 						} else {
-							ErrorResponse errorResponse = new ErrorResponse();
-							errorResponse.setErrorMessage(validatePasswordPair.getSecond());
-							validateUserResponse.setError(errorResponse);
+							validateUserResponse
+									.setError(Utility.getErrorResponse(0, validatePasswordPair.getSecond()));
 						}
 					} else {
-						ErrorResponse errorResponse = new ErrorResponse();
-						errorResponse.setErrorMessage(Constants.msg_no_user_found);
-						validateUserResponse.setError(errorResponse);
+						validateUserResponse.setError(Utility.getErrorResponse(0, Constants.msg_no_user_found));
 					}
 				} else {
-					ErrorResponse errorResponse = new ErrorResponse();
-					errorResponse.setErrorMessage(passwordUserValidatorPair.getSecond());
-					validateUserResponse.setError(errorResponse);
+					validateUserResponse.setError(Utility.getErrorResponse(0, passwordUserValidatorPair.getSecond()));
 				}
 			} else {
-				ErrorResponse errorResponse = new ErrorResponse();
-				errorResponse.setErrorMessage(emailUserValidatorPair.getSecond());
-				validateUserResponse.setError(errorResponse);
+				validateUserResponse.setError(Utility.getErrorResponse(0, emailUserValidatorPair.getSecond()));
 			}
 
 		} else {
-			ErrorResponse errorResponse = new ErrorResponse();
-			errorResponse.setErrorMessage(Constants.msg_enter_valid_data);
-			validateUserResponse.setError(errorResponse);
+			validateUserResponse.setError(Utility.getErrorResponse(0, Constants.msg_enter_valid_data));
 		}
 		return validateUserResponse;
 	}
@@ -130,69 +261,53 @@ public class UserController {
 																	.findByEmail(addUserRequest.getEmail());
 															validateUserResponse.setData(usersMaster);
 														} else {
-															ErrorResponse errorResponse = new ErrorResponse();
-															errorResponse.setErrorMessage(Constants.msg_user_exist);
-															validateUserResponse.setError(errorResponse);
+															validateUserResponse.setError(Utility.getErrorResponse(0,
+																	Constants.msg_user_exist));
 														}
 													} catch (Exception e) {
 														e.printStackTrace();
-														ErrorResponse errorResponse = new ErrorResponse();
-														errorResponse.setErrorMessage(e.getLocalizedMessage());
-														validateUserResponse.setError(errorResponse);
+														validateUserResponse.setError(
+																Utility.getErrorResponse(0, e.getLocalizedMessage()));
 													}
 												}
 											} else {
-												ErrorResponse errorResponse = new ErrorResponse();
-												errorResponse.setErrorMessage(passwordUserValidatorPair.getSecond());
-												validateUserResponse.setError(errorResponse);
+												validateUserResponse.setError(Utility.getErrorResponse(0,
+														passwordUserValidatorPair.getSecond()));
 											}
 										} else {
-											ErrorResponse errorResponse = new ErrorResponse();
-											errorResponse.setErrorMessage(emailUserValidatorPair.getSecond());
-											validateUserResponse.setError(errorResponse);
+											validateUserResponse.setError(
+													Utility.getErrorResponse(0, emailUserValidatorPair.getSecond()));
 										}
 
 									} else {
-										ErrorResponse errorResponse = new ErrorResponse();
-										errorResponse.setErrorMessage(validateGenderPair.getSecond());
-										validateUserResponse.setError(errorResponse);
+										validateUserResponse
+												.setError(Utility.getErrorResponse(0, validateGenderPair.getSecond()));
 									}
 								} else {
-									ErrorResponse errorResponse = new ErrorResponse();
-									errorResponse.setErrorMessage(validateMaritalStatusPair.getSecond());
-									validateUserResponse.setError(errorResponse);
+									validateUserResponse.setError(
+											Utility.getErrorResponse(0, validateMaritalStatusPair.getSecond()));
 								}
 							} else {
-								ErrorResponse errorResponse = new ErrorResponse();
-								errorResponse.setErrorMessage(validateLastNamePair.getSecond());
-								validateUserResponse.setError(errorResponse);
+								validateUserResponse
+										.setError(Utility.getErrorResponse(0, validateLastNamePair.getSecond()));
 							}
 						} else {
-							ErrorResponse errorResponse = new ErrorResponse();
-							errorResponse.setErrorMessage(validateMiddleNamePair.getSecond());
-							validateUserResponse.setError(errorResponse);
+							validateUserResponse
+									.setError(Utility.getErrorResponse(0, validateMiddleNamePair.getSecond()));
 						}
 					} else {
-						ErrorResponse errorResponse = new ErrorResponse();
-						errorResponse.setErrorMessage(validateFirstNamePair.getSecond());
-						validateUserResponse.setError(errorResponse);
+						validateUserResponse.setError(Utility.getErrorResponse(0, validateFirstNamePair.getSecond()));
 					}
 				} else {
-					ErrorResponse errorResponse = new ErrorResponse();
-					errorResponse.setErrorMessage(validateUserTypePair.getSecond());
-					validateUserResponse.setError(errorResponse);
+					validateUserResponse.setError(Utility.getErrorResponse(0, validateUserTypePair.getSecond()));
 				}
 
 			} else {
-				ErrorResponse errorResponse = new ErrorResponse();
-				errorResponse.setErrorMessage(validatePrefixPair.getSecond());
-				validateUserResponse.setError(errorResponse);
+				validateUserResponse.setError(Utility.getErrorResponse(0, validatePrefixPair.getSecond()));
 			}
 
 		} else {
-			ErrorResponse errorResponse = new ErrorResponse();
-			errorResponse.setErrorMessage(Constants.msg_enter_valid_data);
-			validateUserResponse.setError(errorResponse);
+			validateUserResponse.setError(Utility.getErrorResponse(0, Constants.msg_enter_valid_data));
 		}
 		return validateUserResponse;
 	}
@@ -201,7 +316,6 @@ public class UserController {
 	@ResponseBody
 	public BaseResponse<UsersMaster> updateUser(@RequestBody UsersMaster updateUserRequest) {
 		BaseResponse<UsersMaster> validateUserResponse = new BaseResponse<UsersMaster>();
-		UsersMaster usersMaster = new UsersMaster();
 		if (updateUserRequest != null) {
 			UsersValidator usersValidator = new UsersValidator();
 
@@ -234,6 +348,7 @@ public class UserController {
 
 												if (updateUserRequest.getId() > 0) {
 													try {
+														UsersMaster usersMaster = new UsersMaster();
 														usersMaster = userRepo.findById(updateUserRequest.getId())
 																.get();
 														UsersMaster userMasterByEmail = userRepo
@@ -247,10 +362,9 @@ public class UserController {
 																			.findById(updateUserRequest.getId()).get();
 																	validateUserResponse.setData(usersMaster);
 																} else {
-																	ErrorResponse errorResponse = new ErrorResponse();
-																	errorResponse
-																			.setErrorMessage(Constants.msg_email_exist);
-																	validateUserResponse.setError(errorResponse);
+																	validateUserResponse
+																			.setError(Utility.getErrorResponse(0,
+																					Constants.msg_email_exist));
 																}
 															} else {
 																userRepo.save(updateUserRequest);
@@ -259,69 +373,53 @@ public class UserController {
 																validateUserResponse.setData(usersMaster);
 															}
 														} else {
-															ErrorResponse errorResponse = new ErrorResponse();
-															errorResponse.setErrorMessage(Constants.msg_no_user_found);
-															validateUserResponse.setError(errorResponse);
+															validateUserResponse.setError(Utility.getErrorResponse(0,
+																	Constants.msg_no_user_found));
 														}
 													} catch (Exception e) {
 														e.printStackTrace();
-														ErrorResponse errorResponse = new ErrorResponse();
-														errorResponse.setErrorMessage(e.getLocalizedMessage());
-														validateUserResponse.setError(errorResponse);
+														validateUserResponse.setError(
+																Utility.getErrorResponse(0, e.getLocalizedMessage()));
 													}
+												} else {
+													validateUserResponse.setError(
+															Utility.getErrorResponse(0, Constants.msg_no_user_found));
 												}
 											} else {
-												ErrorResponse errorResponse = new ErrorResponse();
-												errorResponse.setErrorMessage(passwordUserValidatorPair.getSecond());
-												validateUserResponse.setError(errorResponse);
+												validateUserResponse.setError(Utility.getErrorResponse(0,
+														passwordUserValidatorPair.getSecond()));
 											}
 										} else {
-											ErrorResponse errorResponse = new ErrorResponse();
-											errorResponse.setErrorMessage(emailUserValidatorPair.getSecond());
-											validateUserResponse.setError(errorResponse);
+											validateUserResponse.setError(
+													Utility.getErrorResponse(0, emailUserValidatorPair.getSecond()));
 										}
-
 									} else {
-										ErrorResponse errorResponse = new ErrorResponse();
-										errorResponse.setErrorMessage(validateGenderPair.getSecond());
-										validateUserResponse.setError(errorResponse);
+										validateUserResponse
+												.setError(Utility.getErrorResponse(0, validateGenderPair.getSecond()));
 									}
 								} else {
-									ErrorResponse errorResponse = new ErrorResponse();
-									errorResponse.setErrorMessage(validateMaritalStatusPair.getSecond());
-									validateUserResponse.setError(errorResponse);
+									validateUserResponse.setError(
+											Utility.getErrorResponse(0, validateMaritalStatusPair.getSecond()));
 								}
 							} else {
-								ErrorResponse errorResponse = new ErrorResponse();
-								errorResponse.setErrorMessage(validateLastNamePair.getSecond());
-								validateUserResponse.setError(errorResponse);
+								validateUserResponse
+										.setError(Utility.getErrorResponse(0, validateLastNamePair.getSecond()));
 							}
 						} else {
-							ErrorResponse errorResponse = new ErrorResponse();
-							errorResponse.setErrorMessage(validateMiddleNamePair.getSecond());
-							validateUserResponse.setError(errorResponse);
+							validateUserResponse
+									.setError(Utility.getErrorResponse(0, validateMiddleNamePair.getSecond()));
 						}
 					} else {
-						ErrorResponse errorResponse = new ErrorResponse();
-						errorResponse.setErrorMessage(validateFirstNamePair.getSecond());
-						validateUserResponse.setError(errorResponse);
+						validateUserResponse.setError(Utility.getErrorResponse(0, validateFirstNamePair.getSecond()));
 					}
 				} else {
-					ErrorResponse errorResponse = new ErrorResponse();
-					errorResponse.setErrorMessage(validateUserTypePair.getSecond());
-					validateUserResponse.setError(errorResponse);
+					validateUserResponse.setError(Utility.getErrorResponse(0, validateUserTypePair.getSecond()));
 				}
-
 			} else {
-				ErrorResponse errorResponse = new ErrorResponse();
-				errorResponse.setErrorMessage(validatePrefixPair.getSecond());
-				validateUserResponse.setError(errorResponse);
+				validateUserResponse.setError(Utility.getErrorResponse(0, validatePrefixPair.getSecond()));
 			}
-
 		} else {
-			ErrorResponse errorResponse = new ErrorResponse();
-			errorResponse.setErrorMessage(Constants.msg_enter_valid_data);
-			validateUserResponse.setError(errorResponse);
+			validateUserResponse.setError(Utility.getErrorResponse(0, Constants.msg_enter_valid_data));
 		}
 		return validateUserResponse;
 	}
